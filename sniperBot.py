@@ -9,6 +9,7 @@ addressToken = '0x2de5A0F18b9808a4c80a9ddD2789266F0B744Fee'
 addressPair = '0x13165203a2Be5D0D6d331DBc795658D5FBbdc712'
 recipient = '0xE256d74A4A5D2EE8b4C96cD41d4506A3DFF6D8D8'
 adminPrivateKey = ''
+deadline = (int(time.time()) + 60*10)
 
 w3 = Web3(Web3.HTTPProvider('https://bsc-dataseed.binance.org/'))
 with open("./abiPancakeRouterV2.json") as fileRouter:
@@ -32,15 +33,15 @@ tokenSC = w3.eth.contract(address=addressToken, abi=tokenABI)
 def getKlast():
     return pairSC.functions.kLast().call()
        
-def swapBNBbyTOKEN(valueInBNB, deadline):
+def swapBNBbyTOKEN(valueInBNB, _deadline):
     logs = []
     gasLimit = routerSC.functions.swapExactETHForTokens(0, 
     [addressWBNB, addressToken],
-    recipient, deadline).estimateGas({'from': recipient, 'value': w3.toWei(valueInBNB, 'ether')})
+    recipient, _deadline).estimateGas({'from': recipient, 'value': w3.toWei(valueInBNB, 'ether')})
     nonce = w3.eth.get_transaction_count(recipient)
     raw_tx = routerSC.functions.swapExactETHForTokens(0, 
     [addressWBNB, addressToken],
-    recipient, deadline).buildTransaction({
+    recipient, _deadline).buildTransaction({
     'chainId': w3.eth.chain_id,
     'gas': gasLimit,
     'nonce': nonce,
@@ -58,12 +59,12 @@ def swapBNBbyTOKEN(valueInBNB, deadline):
     print(pairSC.functions.price1CumulativeLast().call())
     
 
-def swapTOKENbyBNB(amountInToken, deadline): 
+def swapTOKENbyBNB(amountInToken, _deadline): 
     gasLimit = routerSC.functions.swapTokensForExactETH(0, amountInToken,
-    [addressToken, addressWBNB], recipient, deadline).estimateGas({'from': recipient})
+    [addressToken, addressWBNB], recipient, _deadline).estimateGas({'from': recipient})
     nonce = w3.eth.get_transaction_count(recipient)
     raw_tx = routerSC.functions.swapTokensForExactETH(0, amountInToken, 
-    [addressWBNB, addressToken], recipient, deadline).buildTransaction({
+    [addressWBNB, addressToken], recipient, _deadline).buildTransaction({
         'chainId': w3.eth.chain_id,
         'gas': gasLimit,
         'nonce': nonce
@@ -76,24 +77,27 @@ def swapTOKENbyBNB(amountInToken, deadline):
     print(w3.fromWei(w3.eth.get_balance(recipient)), 'ether')
     print(tx_receipt['logs'])
     
-def gasLimit(valueInBNB):
+def gasLimit(valueInBNB, _deadline):
     return routerSC.functions.swapExactETHForTokens(0, 
         [addressWBNB, addressToken],
-        recipient, deadline).estimateGas({'from': recipient, 'value': w3.toWei(valueInBNB, 'ether')})
+        recipient, _deadline).estimateGas({'from': recipient, 'value': w3.toWei(valueInBNB, 'ether')})
     
-deadline = (int(time.time()) + 60*10)
-
-def buyFirst():
+def buyFirst(valueInBNB):
     count = 0
     k = getKlast()
     while(k == 0):
         print('k is 0 already')
         count +=1    
-    swapBNBbyTOKEN(0.1, deadline)
+    swapBNBbyTOKEN(valueInBNB, deadline)
 
-print(w3.fromWei(w3.eth.get_balance(recipient), 'ether'))
-balance = tokenSC.functions.balanceOf(recipient).call()
-print(w3.fromWei(balance, 'gwei'))
+
+
+
+##Call function buyFirst(valueInBNB) 3 minutes before token launched in PancakeSwap
+buyFirst(0.1)
+#print(w3.fromWei(w3.eth.get_balance(recipient), 'ether'))
+#balance = tokenSC.functions.balanceOf(recipient).call()
+#print(w3.fromWei(balance, 'gwei'))
 
 #print(pairSC.functions.price1CumulativeLast().call())#
 #print(pairSC.functions.price0CumulativeLast().call())
